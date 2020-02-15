@@ -37,11 +37,14 @@ DebugInfoProcessor::Impl::write_di_namespace::write(
     const llvm::DINamespace& dinamespace, const refmode_t& nodeId, DIProc& proc)
 {
     const string name = dinamespace.getName();
-    //const unsigned line = dinamespace.getLine();
 
     proc.writeFact(pred::di_namespace::id, nodeId);
     proc.writeFact(pred::di_namespace::name, nodeId, name);
-    //proc.writeFact(pred::di_namespace::line, nodeId, line);
+
+#if LLVM_VERSION_MAJOR < 5  // DINamespace->getLine eliminated
+    const unsigned line = dinamespace.getLine();
+    proc.writeFact(pred::di_namespace::line, nodeId, line);
+#endif
 
     // Record file information for namespace
     if (const llvm::DIFile *difile = dinamespace.getFile()) {
@@ -124,17 +127,14 @@ DebugInfoProcessor::Impl::write_di_subprogram::write(
 
     proc.writeFact(pred::di_subprogram::id, nodeId);
 
-#if LLVM_VERSION_MAJOR == 3
-#if LLVM_VERSION_MINOR < 8
     // Record function subprogram
+#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 8
     if (const llvm::Function *func = disubprogram.getFunction()) {
         refmode_t funcref = proc.refmEngine.refmode<llvm::Function>(*func);
         proc.writeFact(pred::di_subprogram::function, nodeId, funcref);
     }
 #endif
-#else
-//#error Unsupported LLVM version
-#endif
+
 
     //-----------------------------------------------------------------
     // Record generic scope properties
@@ -151,7 +151,7 @@ DebugInfoProcessor::Impl::write_di_subprogram::write(
     }
 
     // Record enclosing scope
-    proc.recordUnionAttribute<pred::di_subprogram::scope, write_di_scope>(
+    proc.recordUnionAttribute<pred::di_subprogram::scope, write_di_scope, llvm::DIScope>(
         nodeId, disubprogram.getScope());
 
     //-----------------------------------------------------------------
@@ -188,7 +188,8 @@ DebugInfoProcessor::Impl::write_di_subprogram::write(
 
     // Record containing type
     proc.recordUnionAttribute<pred::di_subprogram::containing_type,
-                              write_di_type>(
+                              write_di_type,
+                              llvm::DIType>(
         nodeId, disubprogram.getContainingType());
 
     // Record declaration
@@ -199,8 +200,13 @@ DebugInfoProcessor::Impl::write_di_subprogram::write(
 
     // Record virtuality and virtual index
     if (unsigned virtuality = disubprogram.getVirtuality()) {
-        const char *virtualityStr = llvm::dwarf::VirtualityString(virtuality).data();
+#if LLVM_VERSION_MAJOR < 4  // const char * -> StringRef
+        const char *virtualityStr = llvm::dwarf::VirtualityString(virtuality);
         proc.writeFact(pred::di_subprogram::virtuality, nodeId, virtualityStr);
+#else
+        llvm::StringRef virtualityStr = llvm::dwarf::VirtualityString(virtuality);
+        proc.writeFact(pred::di_subprogram::virtuality, nodeId, virtualityStr.str());
+#endif
 
         unsigned virtIdx = disubprogram.getVirtualIndex();
         proc.writeFact(pred::di_subprogram::virtual_index, nodeId, virtIdx);
@@ -210,7 +216,8 @@ DebugInfoProcessor::Impl::write_di_subprogram::write(
     proc.recordFlags(pred::di_subprogram::flag, nodeId, disubprogram.getFlags());
 
     // Record variables
-    /*const auto& variables = disubprogram.getVariables();
+#if LLVM_VERSION_MAJOR < 4
+    const auto& variables = disubprogram.getVariables();
     for (size_t i = 0; i < variables.size(); ++i) {
         // Record variable
         refmode_t varId = record_di_variable::record(*variables[i], proc);
@@ -218,7 +225,8 @@ DebugInfoProcessor::Impl::write_di_subprogram::write(
         // Record variable - subprogram association
         proc.writeFact(pred::di_subprogram::variable, nodeId, i, varId);
     }
-*/
+#endif
+
     // Record template parameters
     const auto& tplParams = disubprogram.getTemplateParams();
     for (size_t i = 0; i < tplParams.size(); ++i) {

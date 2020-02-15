@@ -34,7 +34,7 @@ DebugInfoProcessor::Impl::write_di_variable::write(
         proc.writeFact(pred::di_variable::name, nodeId, name);
 
     // Record variable type
-    proc.recordUnionAttribute<pred::di_variable::type, write_di_type>(
+    proc.recordUnionAttribute<pred::di_variable::type, write_di_type, llvm::DIType>(
         nodeId, divar.getType());
 
     // Record variable scope

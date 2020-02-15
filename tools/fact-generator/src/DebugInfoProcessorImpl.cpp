@@ -27,7 +27,6 @@ DebugInfoProcessor::Impl::generateDebugInfo(
 {
     using llvm::DICompositeType;
     using llvm::DIDerivedType;
-    using llvm::DIScopeRef;
     using llvm::MDString;
     using llvm::Metadata;
     typedef llvm::DebugInfoFinder::type_iterator di_type_iterator;

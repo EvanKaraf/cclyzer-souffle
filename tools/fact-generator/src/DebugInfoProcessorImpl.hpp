@@ -186,9 +186,14 @@ class cclyzer::DebugInfoProcessor::Impl
     /* Helper method to write common type attributes */
     void write_di_type_common(const llvm::DIType &, const refmode_t &);
 
+    // /* Helper method to write union attributes */
+    // template<typename P, typename writer, typename T>
+    // void recordUnionAttribute(const refmode_t &, const llvm::TypedDINodeRef<T> & );
+
     /* Helper method to write union attributes */
     template<typename P, typename writer, typename T>
-    void recordUnionAttribute(const refmode_t &, const llvm::TypedDINodeRef<T> & );
+    void recordUnionAttribute(const refmode_t &, const llvm::Metadata * );
+
 
     /* Helper method to write bit flags */
     void recordFlags(const Predicate &, const refmode_t &, unsigned);
