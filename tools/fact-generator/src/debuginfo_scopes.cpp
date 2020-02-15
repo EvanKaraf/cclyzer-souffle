@@ -133,7 +133,7 @@ DebugInfoProcessor::Impl::write_di_subprogram::write(
         refmode_t funcref = proc.refmEngine.refmode<llvm::Function>(*func);
         proc.writeFact(pred::di_subprogram::function, nodeId, funcref);
     }
-#endif
+#endif
 
 
     //-----------------------------------------------------------------
@@ -151,7 +151,7 @@ DebugInfoProcessor::Impl::write_di_subprogram::write(
     }
 
     // Record enclosing scope
-    proc.recordUnionAttribute<pred::di_subprogram::scope, write_di_scope>(
+    proc.recordUnionAttribute<pred::di_subprogram::scope, write_di_scope, llvm::DIScope>(
         nodeId, disubprogram.getScope());
 
     //-----------------------------------------------------------------
@@ -188,7 +188,8 @@ DebugInfoProcessor::Impl::write_di_subprogram::write(
 
     // Record containing type
     proc.recordUnionAttribute<pred::di_subprogram::containing_type,
-                              write_di_type>(
+                              write_di_type,
+                              llvm::DIType>(
         nodeId, disubprogram.getContainingType());
 
     // Record declaration

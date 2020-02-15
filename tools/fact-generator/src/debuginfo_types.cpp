@@ -109,12 +109,14 @@ DebugInfoProcessor::Impl::write_di_composite_type::write(
     }
 
     // Record base type
-    proc.recordUnionAttribute<pred::di_composite_type::basetype, write_di_type>(
-        nodeId, ditype.getBaseType());
+    auto baseType = static_cast<llvm::Metadata*>(ditype.getBaseType());
+    proc.recordUnionAttribute<pred::di_composite_type::basetype, write_di_type, llvm::DIType>(
+        nodeId, baseType);
 
     // Record v-table
-    proc.recordUnionAttribute<pred::di_composite_type::vtable, write_di_type>(
-        nodeId, ditype.getVTableHolder());
+    auto VtableHolder = static_cast<llvm::Metadata*>(ditype.getVTableHolder());
+    proc.recordUnionAttribute<pred::di_composite_type::vtable, write_di_type, llvm::DIType>(
+        nodeId, VtableHolder);
 
     // Record template parameters
     const auto& tplParams = ditype.getTemplateParams();
@@ -156,8 +158,9 @@ DebugInfoProcessor::Impl::write_di_derived_type::write(
 #endif
 
     // Record base type
-    proc.recordUnionAttribute<pred::di_derived_type::basetype, write_di_type>(
-        nodeId, ditype.getBaseType());
+    auto baseType = static_cast<llvm::Metadata*>(ditype.getBaseType());
+    proc.recordUnionAttribute<pred::di_derived_type::basetype, write_di_type, llvm::DIType>(
+        nodeId, baseType);
 
     // Record file information for type
     if (const llvm::DIFile *difile = ditype.getFile()) {
@@ -184,7 +187,7 @@ DebugInfoProcessor::Impl::write_di_subroutine_type::write(
     auto typeArray = ditype.getTypeArray();
 
     for (size_t i = 0; i < typeArray.size(); ++i) {
-        if (const llvm::DITypeRef type = typeArray[i]) {
+        if (llvm::DIType* type = typeArray[i]) {
             const llvm::Metadata& meta = *type;
 
             if (const MDString *mds = dyn_cast<MDString>(&meta)) {
@@ -244,8 +247,9 @@ DebugInfoProcessor::Impl::write_di_type_common(
 
 
     // Record enclosing scope
-    recordUnionAttribute<pred::di_type::scope, write_di_scope>(
-        nodeId, ditype.getScope());
+    auto scope = static_cast<llvm::Metadata*>(ditype.getScope());
+    recordUnionAttribute<pred::di_type::scope, write_di_scope, llvm::DIScope>(
+        nodeId, scope);
 
     // Record flags
     recordFlags(pred::di_type::flag, nodeId, ditype.getFlags());

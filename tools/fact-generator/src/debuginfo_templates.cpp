@@ -27,14 +27,14 @@ DebugInfoProcessor::Impl::write_di_tpl_param::write(
     proc.writeFact(pred::di_template_param::id, nodeId);
 
     const std::string name = diparam.getName();
-    const llvm::DITypeRef& type = diparam.getType();
+    const llvm::Metadata* type = static_cast<llvm::Metadata*>(diparam.getType());
 
     // Record template parameter name
     if (!name.empty())
         proc.writeFact(pred::di_template_param::name, nodeId, name);
 
     // Record template parameter type
-    proc.recordUnionAttribute<pred::di_template_param::type, write_di_type>(
+    proc.recordUnionAttribute<pred::di_template_param::type, write_di_type, llvm::DIType>(
         nodeId, type);
 
     if (const auto *tparam = dyn_cast<DITemplateTypeParameter>(&diparam)) {
