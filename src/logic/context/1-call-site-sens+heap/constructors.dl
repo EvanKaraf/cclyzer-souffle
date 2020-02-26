@@ -18,7 +18,7 @@
 // Context Constructors
 //-----------------------------------------------------
 
-//.decl context_new(?item:ContextItem, ?ctx:Context)
+.decl context_new(?item:ContextItem, ?ctx:Context)
 .decl alloc_context_new(?item:ContextItem, ?aCtx:AllocationContext)
 
 
@@ -93,7 +93,7 @@ context_item(?ctxItem)
 //    instruction(Invoc), alloc_context(ACtx), allocation(Alloc).
 
 // // Macro-definitions
-/*
+
 alloc_context_new(?item, ?aCtx) :-
    record(?ctx, _, ?aCtx),
    context_new(?item, ?ctx).
@@ -103,7 +103,7 @@ context_new(?newItem, ?calleeCtx) :-
    merge(?callerCtx, ?invoc, _, _, ?calleeCtx),
    context_new(_,?callerCtx),
    context_item_by_invoc(?invoc, ?newItem).
-*/
+
 //-----------------------------------------------------
 // Unpacking context items
 //-----------------------------------------------------

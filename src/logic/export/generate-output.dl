@@ -8,6 +8,8 @@
 .output alloc_context_getinvoc
 .output alloc_context_getitem
 .output alloc_context_new
+.output alloc_context_request
+.output alloc_context_response
 .output alloc_matches
 .output alloc_points_to_sizes
 .output alloc_subobject
@@ -109,6 +111,7 @@
 .output context_item
 .output context_item_by_invoc
 .output context_item_invoc
+.output context_new
 .output context_request
 .output context_response
 .output cxx_alloc_exception
@@ -373,6 +376,7 @@
 .output memcpy
 .output memcpy_call
 .output memcpy_pass_by_value
+.output merge
 .output metadata_type
 .output minimal_suffix
 .output minimal_suffix_len
@@ -432,6 +436,9 @@
 .output ptrtoint_instruction_from_type
 .output ptx_device_calling_convention
 .output ptx_kernel_calling_convention
+.output reachable_context1
+.output reachable_context2
+.output reachable_context3
 .output reachable_context4
 .output reachable_function
 .output reachable_instruction
@@ -439,6 +446,7 @@
 .output reachable_store
 .output reachable_var
 .output reachable_vars
+.output record
 .output region_contains
 .output registers_atexit
 .output registers_dtor_atexit
