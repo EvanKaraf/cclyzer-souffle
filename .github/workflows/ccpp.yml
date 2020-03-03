@@ -14,7 +14,9 @@ jobs:
            sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 379CE192D401AB61 &&
            sudo apt-get update &&
            sudo apt-get install souffle
-    - name: make
-      run: make
+    - name: create tests facts
+      run: make fact-generator && ./bin/fact-generator -o facts/ tests/coreutils-8.24/ls.bc
+    - name: test analysis
+      run: mkdir -p results && souffle -F facts/ -D results/ src/logic/master.project
     - name: make clean
       run: make clean
