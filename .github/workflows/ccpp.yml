@@ -10,7 +10,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: install llvm9
-      run: sudo apt-get install llvm-9
+      run: sudo apt-get install llvm-9 && sudo rm /usr/bin/llvm-config && sudo ln -s /usr/bin/llvm-config-9 /usr/bin/llvm-config
     - name: install souffle
       run: echo "deb https://dl.bintray.com/souffle-lang/deb-unstable bionic main" | sudo tee -a /etc/apt/sources.list &&
            sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 379CE192D401AB61 &&
