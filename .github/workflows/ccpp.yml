@@ -9,6 +9,11 @@ jobs:
     
     steps:
     - uses: actions/checkout@v2
+    - name: install souffle
+      run: echo "deb https://dl.bintray.com/souffle-lang/deb-unstable bionic main" | sudo tee -a /etc/apt/sources.list &&
+           sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 379CE192D401AB61 &&
+           sudo apt-get update &&
+           sudo apt-get install souffle
     - name: make
       run: make
     - name: make clean
