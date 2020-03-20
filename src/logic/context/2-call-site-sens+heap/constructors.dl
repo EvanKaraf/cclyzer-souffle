@@ -29,7 +29,7 @@
 
 context(?ctx),
 context_response(?callerCtx, ?actx, ?invoc, ?ctx) :-
-   context_request(?callerCtx, ?actx, ?invoc),
+   context_request(?callerCtx, ?actx, ?invoc, _),
    context_item(?item0),
    ?callerCtx=[?item1, ?item0],
    ?ctx = [?item0, ?invoc].
@@ -138,3 +138,10 @@ acontext_getinvoc(?actx, ?invoc) :-
 
 context_getitem(?ctx, ?ctxItem) :-
    context_response(_, _, ?ctxItem, ?ctx).
+
+
+.decl AContextFromContext(?ctx: Context, ?actx: AContext)
+
+AContextFromContext(?ctx, ?actx) :-
+    empty_context(?ctx),
+    empty_acontext(?actx).
