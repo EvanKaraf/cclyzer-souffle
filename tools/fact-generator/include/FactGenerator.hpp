@@ -25,12 +25,6 @@ namespace cclyzer {
     class FactGenerator;
 }
 
-#if LLVM_VERSION_MAJOR < 5  // AttributeSet ->AttributeList
-typedef llvm::AttributeSet Attributes;
-#else
-typedef llvm::AttributeList Attributes;
-#endif
-
 class cclyzer::FactGenerator
     : private RefmodeEngine,
       private Demangler,
@@ -77,7 +71,7 @@ class cclyzer::FactGenerator
     /* Auxiliary fact writing methods */
 
     template<typename PredGroup>
-    void writeFnAttributes(const refmode_t&, const Attributes);
+    void writeFnAttributes(const refmode_t&, const llvm::AttributeList);
 
     template<typename PredGroup, class ConstantType>
     void writeConstantWithOperands(const ConstantType&, const refmode_t&);

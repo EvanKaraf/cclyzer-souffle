@@ -304,13 +304,15 @@ InstructionVisitor::visitSwitchInst(const llvm::SwitchInst &SI)
     // 'case list' [constant, label]
     int index = 0;
 
-    for(auto Case: SI.cases())
+    for(llvm::SwitchInst::ConstCaseIt
+            Case = SI.case_begin(), CasesEnd = SI.case_end();
+        Case != CasesEnd; Case++)
     {
         writeInstrOperand(pred::switch_::case_value,
-                          iref, Case.getCaseValue(), index);
+                          iref, Case->getCaseValue(), index);
 
         writeInstrOperand(pred::switch_::case_label,
-                          iref, Case.getCaseSuccessor(), index++);
+                          iref, Case->getCaseSuccessor(), index++);
     }
 
     gen.writeFact(pred::switch_::ncases, iref, SI.getNumCases());
@@ -354,11 +356,11 @@ InstructionVisitor::visitInvokeInst(const llvm::InvokeInst &II)
     writeInstrOperand(pred::invoke::exc_label, iref, II.getUnwindDest());
 
     // Function Attributes
-    const Attributes &Attrs = II.getAttributes();
+    const llvm::AttributeList &Attrs = II.getAttributes();
 
-    if (Attrs.hasAttributes(Attributes::ReturnIndex))
+    if (Attrs.hasAttributes(llvm::AttributeList::ReturnIndex))
     {
-        string attrs = Attrs.getAsString(Attributes::ReturnIndex);
+        string attrs = Attrs.getAsString(llvm::AttributeList::ReturnIndex);
         gen.writeFact(pred::invoke::ret_attr, iref, attrs);
     }
 
@@ -484,18 +486,14 @@ InstructionVisitor::visitAtomicCmpXchgInst(const llvm::AtomicCmpXchgInst &AXI)
 
     llvm::AtomicOrdering successOrd = AXI.getSuccessOrdering();
     llvm::AtomicOrdering failureOrd = AXI.getFailureOrdering();
+    llvm::SyncScope::ID synchScope = AXI.getSyncScopeID();
 
     string successOrdStr = gen.refmode<llvm::AtomicOrdering>(successOrd);
     string failureOrdStr = gen.refmode<llvm::AtomicOrdering>(failureOrd);
 
     // default synchScope: crossthread
-#if LLVM_VERSION_MAJOR < 5  // getSynchScope -> getSyncScopeID
-    if (AXI.getSynchScope() == llvm::SingleThread) {
-#else
-    if (AXI.getSyncScopeID() == llvm::SyncScope::SingleThread) {
-#endif
+    if (synchScope == llvm::SyncScope::SingleThread)
         gen.writeFact(pred::instruction::flag, iref, "singlethread");
-    }
 
     if (!successOrdStr.empty())
         gen.writeFact(pred::cmpxchg::ordering, iref, successOrdStr);
@@ -683,10 +681,10 @@ InstructionVisitor::visitCallInst(const llvm::CallInst &CI)
     }
 
     // Attributes
-    const Attributes &Attrs = CI.getAttributes();
+    const llvm::AttributeList &Attrs = CI.getAttributes();
 
-    if (Attrs.hasAttributes(Attributes::ReturnIndex)) {
-        string attrs = Attrs.getAsString(Attributes::ReturnIndex);
+    if (Attrs.hasAttributes(llvm::AttributeList::ReturnIndex)) {
+        string attrs = Attrs.getAsString(llvm::AttributeList::ReturnIndex);
         gen.writeFact(pred::call::ret_attr, iref, attrs);
     }
 
@@ -867,14 +865,10 @@ InstructionVisitor::writeOptimizationInfo(refmode_t iref, const llvm::User *u)
 
     if (const FPMathOperator *fpo = dyn_cast<const FPMathOperator>(u)) {
 
-#if LLVM_VERSION_MAJOR > 5  // new FPO fields
-        if (fpo->isFast()) {
-#else
-        if (fpo->hasUnsafeAlgebra()) {
-#endif
+        /*if (fpo->hasUnsafeAlgebra()) {
             gen.writeFact(pred::instruction::flag, iref, "fast");
         }
-        else {
+        else {*/
             if (fpo->hasNoNaNs())
                 gen.writeFact(pred::instruction::flag, iref, "nnan");
 
@@ -886,16 +880,7 @@ InstructionVisitor::writeOptimizationInfo(refmode_t iref, const llvm::User *u)
 
             if (fpo->hasAllowReciprocal())
                 gen.writeFact(pred::instruction::flag, iref, "arcp");
-                
-#if LLVM_VERSION_MAJOR > 4  // new FPO fields
-            if (fpo->hasAllowContract())
-                gen.writeFact(pred::instruction::flag, iref, "acon");
-#endif
-#if LLVM_VERSION_MAJOR > 5  // new FPO fields
-            if (fpo->hasApproxFunc())
-                gen.writeFact(pred::instruction::flag, iref, "apfn");
-#endif
-        }
+        //}
     }
 
     if (const OverflowingBinaryOperator *obo = dyn_cast<OverflowingBinaryOperator>(u)) {

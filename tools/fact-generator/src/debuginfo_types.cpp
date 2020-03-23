@@ -77,14 +77,8 @@ DebugInfoProcessor::Impl::write_di_composite_type::write(
       case dwarf::Tag::DW_TAG_enumeration_type:
           proc.writeFact(pred::di_composite_type::enumerations, nodeId); break;
     }
-    
-#if LLVM_VERSION_MAJOR < 4  // const char * -> StringRef
-    const char *tagStr = dwarf::TagString(ditype.getTag());
+    const char *tagStr = dwarf::TagString(ditype.getTag()).data();
     proc.writeFact(pred::di_composite_type::kind, nodeId, tagStr);
-#else
-    llvm::StringRef tagStr = dwarf::TagString(ditype.getTag());
-    proc.writeFact(pred::di_composite_type::kind, nodeId, tagStr.str());
-#endif
 
     // Record ABI Identifier for this composite type
     const string abiId = ditype.getIdentifier();
@@ -149,13 +143,8 @@ DebugInfoProcessor::Impl::write_di_derived_type::write(
     proc.writeFact(pred::di_derived_type::id, nodeId);
 
     // Record exact kind of derived type
-#if LLVM_VERSION_MAJOR < 4  // const char * -> StringRef
-    const char *tagStr = dwarf::TagString(ditype.getTag());
+    const char *tagStr = dwarf::TagString(ditype.getTag()).data();
     proc.writeFact(pred::di_derived_type::kind, nodeId, tagStr);
-#else
-    llvm::StringRef tagStr = dwarf::TagString(ditype.getTag());
-    proc.writeFact(pred::di_derived_type::kind, nodeId, tagStr.str());
-#endif
 
     // Record base type
     auto baseType = static_cast<llvm::Metadata*>(ditype.getBaseType());

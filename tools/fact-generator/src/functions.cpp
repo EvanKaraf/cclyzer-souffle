@@ -5,6 +5,7 @@
 #include "debuginfo_predicate_groups.hpp"
 #include "predicate_groups.hpp"
 #include "FactGenerator.hpp"
+#include <iostream>
 
 using cclyzer::FactGenerator;
 namespace pred = cclyzer::predicates;
@@ -24,11 +25,20 @@ FactGenerator::writeFunction(
     refmode_t linkage = refmode(func.getLinkage());
     refmode_t typeSignature = recordType(func.getFunctionType());
 
+#if LLVM_VERSION_MAJOR == 3
+# if LLVM_VERSION_MINOR >= 8
     // Record function subprogram
     if (const llvm::DISubprogram *subprogram = func.getSubprogram()) {
         refmode_t subprogramId = refmode<llvm::DINode>(*subprogram);
         writeFact(pred::di_subprogram::function, subprogramId, funcref);
     }
+# endif
+#else
+    if (const llvm::DISubprogram *subprogram = func.getSubprogram()) {
+        refmode_t subprogramId = refmode<llvm::DINode>(*subprogram);
+        writeFact(pred::di_subprogram::function, subprogramId, funcref);
+    }
+#endif
 
     // Record function type signature
     writeFact(pred::function::type, funcref, typeSignature);
@@ -68,10 +78,7 @@ FactGenerator::writeFunction(
     writeFact(pred::function::name, funcref, funcname);
 
     // Address not significant
-    
-#if LLVM_VERSION_MAJOR > 3 || (LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR >= 9)
-    // NB: for macOS LLVM-3.9.0svn this does not work, i.e. the test should be
-    //#if LLVM_VERSION_MAJOR > 3 or equivalent to force else case
+#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR >= 9
     if (func.hasGlobalUnnamedAddr()) {
         writeFact(pred::function::unnamed_addr, funcref);
     }
@@ -80,17 +87,17 @@ FactGenerator::writeFunction(
     if (func.hasAtLeastLocalUnnamedAddr()) {
     }
 #else
-    if (func.hasUnnamedAddr()) {
+    if (func.getUnnamedAddr() != llvm::Function::UnnamedAddr::None) {
         writeFact(pred::function::unnamed_addr, funcref);
     }
 #endif
 
     // Record function attributes TODO
-    const Attributes &Attrs = func.getAttributes();
+    const llvm::AttributeList &Attrs = func.getAttributes();
 
-    if (Attrs.hasAttributes(Attributes::ReturnIndex))
+    if (Attrs.hasAttributes(llvm::AttributeList::ReturnIndex))
         writeFact(pred::function::ret_attr, funcref,
-                  Attrs.getAsString(Attributes::ReturnIndex));
+                  Attrs.getAsString(llvm::AttributeList::ReturnIndex));
 
     writeFnAttributes<pred::function>(funcref, Attrs);
 
@@ -107,11 +114,10 @@ FactGenerator::writeFunction(
 
     // Record section
     if (func.hasSection()) {
-#if LLVM_VERSION_MAJOR > 3 || (LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR >= 9)
-        llvm::StringRef secStr = func.getSection();
-        writeFact(pred::function::section, funcref, secStr.str());
+#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR >= 9
+        writeFact(pred::function::section, funcref, func.getSection().str());
 #else
-        writeFact(pred::function::section, funcref, func.getSection());
+        writeFact(pred::function::section, funcref, func.getSection().data());
 #endif
     }
 
@@ -137,43 +143,39 @@ FactGenerator::writeFunction(
 template<typename PredGroup>
 void FactGenerator::writeFnAttributes(
     const refmode_t &refmode,
-    const Attributes allAttrs)
+    const llvm::AttributeList allAttrs)
 {
+    using llvm::AttributeList;
 
-#if LLVM_VERSION_MAJOR < 5  // AttributeSet -> AttributeList
-    for (unsigned i = 0; i < allAttrs.getNumSlots(); ++i)
+    for (unsigned i = allAttrs.index_begin(), e = allAttrs.index_end(); i != e; ++i)//(auto allAttr : allAttrs)//unsigned i = 0; i < allAttrs.getNumAttrSets(); ++i)
     {
-        unsigned index = allAttrs.getSlotIndex(i);
+        uint64_t index;// = static_cast<unsigned int>(allAttr.getAttribute(llvm::Attribute::AttrKind::None).getValueAsInt());
 
         // Write out each attribute for this slot
-        for (Attributes::iterator it = allAttrs.begin(i), end = allAttrs.end(i);
+        for (llvm::AttributeSet::iterator
+                 it = allAttrs.getAttributes(i).begin(), end = allAttrs.getAttributes(i).end();
              it != end; ++it)
         {
-            llvm::Attribute attrib = *it;
-#else
-    // Write out each attribute for this slot
-    for (unsigned index = allAttrs.index_begin(), e = allAttrs.index_end(); index != e; ++index)
-    {
-        llvm::AttributeSet attrs = allAttrs.getAttributes(index);
-        for (const llvm::Attribute attrib : attrs)
-        {
-#endif
-            std::string attr = attrib.getAsString();
+            std::string attr = it->getAsString();
             attr.erase (std::remove(attr.begin(), attr.end(), '"'), attr.end());
 
+            index = i;//it->getValueAsInt();
+
             // Record target-dependent attributes
-            if (attrib.isStringAttribute())
+            if (it->isStringAttribute()){
                 writeFact(pred::attribute::target_dependent, attr);
+            }
 
             // Record attribute by kind
             switch (index) {
-              case Attributes::AttrIndex::ReturnIndex:
+                case llvm::AttributeList::AttrIndex::ReturnIndex:
                   writeFact(PredGroup::ret_attr, refmode, attr);
                   break;
-              case Attributes::AttrIndex::FunctionIndex:
+                case llvm::AttributeList::AttrIndex::FunctionIndex:
                   writeFact(PredGroup::fn_attr, refmode, attr);
                   break;
               default:
+                  //std::cout << index << std::endl;
                   writeFact(PredGroup::param_attr, refmode, index - 1, attr);
                   break;
             }
@@ -185,12 +187,12 @@ void FactGenerator::writeFnAttributes(
 
 template void FactGenerator::writeFnAttributes<pred::function>(
     const refmode_t &refmode,
-    const Attributes Attrs);
+    const llvm::AttributeList Attrs);
 
 template void FactGenerator::writeFnAttributes<pred::call>(
     const refmode_t &refmode,
-    const Attributes Attrs);
+    const llvm::AttributeList Attrs);
 
 template void FactGenerator::writeFnAttributes<pred::invoke>(
     const refmode_t &refmode,
-    const Attributes Attrs);
+    const llvm::AttributeList Attrs);

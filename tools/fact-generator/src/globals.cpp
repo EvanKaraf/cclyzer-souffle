@@ -117,7 +117,7 @@ FactGenerator::writeGlobalVar(const llvm::GlobalVariable& gv,
         llvm::StringRef secStr = gv.getSection();
         writeFact(pred::global_var::section, id, secStr.str());
 #else
-        writeFact(pred::global_var::section, id, gv.getSection());
+        writeFact(pred::global_var::section, id, gv.getSection().data());
 #endif
     }
 

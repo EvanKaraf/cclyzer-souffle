@@ -7,12 +7,12 @@
 //------------------------------------------------------------------------------
 
 .type Context = [?item0: ContextItem, ?item1: ContextItem]
-.type AllocationContext = ContextItem
+.type AContext = ContextItem
 .type ContextItem = Instruction | symbol
 
 
 .decl context(?ctx:Context)
-.decl alloc_context(?allocCtx:AllocationContext)
+.decl acontext(?allocCtx:AContext)
 .decl context_item(?item:ContextItem)
 
 //-----------------------------------------------------
@@ -21,26 +21,26 @@
 
 
 .decl context_new(?item: ContextItem, ?ctx:Context)
-.decl alloc_context_new(?item: ContextItem, ?aCtx:AllocationContext)
+.decl acontext_new(?item: ContextItem, ?actx:AContext)
 
 
-.decl context_request(?callerCtx: Context, ?aCtx: AllocationContext, ?invoc: ContextItem)
-.decl context_response(?callerCtx: Context, ?aCtx: AllocationContext, ?invoc: ContextItem, ?ctx: Context)
+.decl context_request(?callerCtx: Context, ?actx: AContext, ?invoc: Instruction, ?tofunction: Function)
+.decl context_response(?callerCtx: Context, ?actx: AContext, ?invoc: Instruction, ?ctx: Context)
 
 context(?ctx),
-context_response(?callerCtx, ?aCtx, ?invoc, ?ctx) :-
-   context_request(?callerCtx, ?aCtx, ?invoc),
+context_response(?callerCtx, ?actx, ?invoc, ?ctx) :-
+   context_request(?callerCtx, ?actx, ?invoc, _),
    context_item(?item0),
    ?callerCtx=[?item1, ?item0],
    ?ctx = [?item0, ?invoc].
 
 
-.decl alloc_context_request(?invoc: ContextItem)
-.decl alloc_context_response(?invoc: ContextItem, ?ctx: AllocationContext)
+.decl acontext_request(?invoc: ContextItem)
+.decl acontext_response(?invoc: ContextItem, ?ctx: AContext)
 
-alloc_context_response(?invoc, ?aCtx) :-
-   alloc_context_request(?invoc),
-   ?aCtx=?invoc.
+acontext_response(?invoc, ?actx) :-
+   acontext_request(?invoc),
+   ?actx=?invoc.
 
 
 //-----------------------------------------------------
@@ -78,22 +78,23 @@ context_item(?str)
 //-----------------------------------------------------
 // Macro-constructors
 //-----------------------------------------------------
-.decl record(?ctx: Context, ?alloc: Allocation, ?aCtx: AllocationContext)
 
-.decl merge(?callerCtx: Context, ?invoc: Instruction, ?aCtx: AllocationContext, ?alloc: Allocation, ?calleeCtx: Context)
+// record[Ctx, Alloc] = ACtx ->
+//    context(Ctx), allocation(Alloc), acontext(ACtx).
 
+// merge[CallerCtx, Invoc, ACtx, Alloc] = CalleeCtx ->
+//    context(CallerCtx), context(CalleeCtx),
+//    instruction(Invoc), acontext(ACtx), allocation(Alloc).
 
 // // Macro-definitions
+// acontext:new[Item] = ACtx <-
+//    record[Ctx, _] = ACtx,
+//    context:new[_, Item] = Ctx.
 
-alloc_context_new(?item, ?aCtx) :-
-   record(?ctx, _, ?aCtx),
-   context_new(?item, ?ctx).
-
-
-context_new(?newItem, ?calleeCtx) :-
-   merge(?callerCtx, ?invoc, _, _, ?calleeCtx),
-   context_new(_,?callerCtx),
-   context_item_by_invoc(?invoc, ?newItem).
+// context:new[LastItem, NewItem] = CalleeCtx <-
+//    merge[CallerCtx, Invoc, _, _] = CalleeCtx,
+//    context:new[_, LastItem] = CallerCtx,
+//    context_item:by_invoc[Invoc] = NewItem.
 
 //-----------------------------------------------------
 // Unpacking context items
@@ -122,13 +123,13 @@ context_getinvoc1(?ctx, ?invoc):-
    context_getitem1(?ctx, ?item),
    context_item_invoc(?item, ?invoc).
 
-.decl alloc_context_getitem(?aCtx:AllocationContext, ?item:ContextItem)
-alloc_context_getitem(?aCtx, ?item):-
-   alloc_context_new(?item, ?aCtx).
+.decl acontext_getitem(?actx:AContext, ?item:ContextItem)
+acontext_getitem(?actx, ?item):-
+   acontext_new(?item, ?actx).
 
-.decl alloc_context_getinvoc(?aCtx:AllocationContext, ?invoc:Instruction)
-alloc_context_getinvoc(?aCtx, ?invoc) :-
-   alloc_context_getitem(?aCtx, ?item),
+.decl acontext_getinvoc(?actx:AContext, ?invoc:Instruction)
+acontext_getinvoc(?actx, ?invoc) :-
+   acontext_getitem(?actx, ?item),
    context_item_invoc(?item, ?invoc).
 
 //Already generated output relations of 1-call-sensitivity
@@ -137,3 +138,10 @@ alloc_context_getinvoc(?aCtx, ?invoc) :-
 
 context_getitem(?ctx, ?ctxItem) :-
    context_response(_, _, ?ctxItem, ?ctx).
+
+
+.decl AContextFromContext(?ctx: Context, ?actx: AContext)
+
+AContextFromContext(?ctx, ?actx) :-
+    empty_context(?ctx),
+    empty_acontext(?actx).

@@ -65,27 +65,19 @@ void
 DebugInfoProcessor::Impl::recordFlags(
     const Predicate& pred, const refmode_t& nodeId, unsigned flags)
 {
-#if LLVM_VERSION_MAJOR < 4  // unsigned -> llvm::DINode::DIFlags
-    typedef unsigned Flags;
-#else
-    typedef llvm::DINode::DIFlags Flags;
-#endif
     if (flags) {
         // Split flags inside vector
-        typedef SmallVector<Flags,8> FlagVectorT;
+        string fl = std::to_string(flags);
+        llvm::DINode::DIFlags f = llvm::DINode::getFlag(fl);
+        typedef SmallVector<llvm::DINode::DIFlags ,8> FlagVectorT;
         FlagVectorT flagsVector;
-        llvm::DINode::splitFlags((Flags)flags, flagsVector);
+        llvm::DINode::splitFlags(f, flagsVector);
 
         for (FlagVectorT::iterator it = flagsVector.begin(),
                  end = flagsVector.end(); it != end; ++it )
         {
-#if LLVM_VERSION_MAJOR < 4  // const char * -> StringRef
-            const char *flag = llvm::DINode::getFlagString(*it);
+            const char *flag = llvm::DINode::getFlagString(*it).data();
             writeFact(pred, nodeId, flag);
-#else
-            llvm::StringRef flag = llvm::DINode::getFlagString(*it);
-            writeFact(pred, nodeId, flag.str());
-#endif
         }
     }
 }
