@@ -71,6 +71,13 @@ $(coreutils_outdir): | $(OUTDIR)
 # Phony testing targets that apply to all benchmarks
 .PHONY: tests.setup tests.run tests.clean
 
+test-execution:
+	make fact-generator
+	rm -rf facts/
+	bin/fact-generator -o facts/ tests/coreutils-8.24/ls.bc
+	python cti.py facts
+	cpp -P src/logic/master-project.dl > src/logic/all.dl
+	souffle -w -F facts/ -D results/ src/logic/all.dl
 
 #----------------------------
 # Benchmark Template
